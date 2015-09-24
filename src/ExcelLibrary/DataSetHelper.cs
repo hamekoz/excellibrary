@@ -87,7 +87,7 @@ namespace ExcelLibrary
 
 					// Populate row data
 					for (int j = 0; j < dt.Rows.Count; j++) {
-						if (dt.Columns [i].DataType == typeof(DateTime)) {
+						if (dt.Columns [i].DataType == typeof(DateTime) && dt.Rows [j] [i].GetType () != typeof(DBNull)) {
 							DateTime value = (DateTime)dt.Rows [j] [i];
 							if (value.Date == DateTime.MinValue.Date && value > DateTime.MinValue) {
 								worksheet.Cells [j + 1, i] = new Cell (dt.Rows [j] [i], CellFormat.Time);
