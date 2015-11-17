@@ -1,17 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.IO;
 
 namespace ExcelLibrary.BinaryFileFormat
 {
 	public partial class DATEMODE : Record
 	{
-		public DATEMODE(Record record) : base(record) { }
-
-		public DATEMODE()
+		public DATEMODE (Record record) : base (record)
 		{
-			this.Type = RecordType.DATEMODE;
+		}
+
+		public DATEMODE ()
+		{
+			Type = RecordType.DATEMODE;
 		}
 
 		/// <summary>
@@ -19,22 +19,21 @@ namespace ExcelLibrary.BinaryFileFormat
 		/// </summary>
 		public Int16 Mode;
 
-		public override void Decode()
+		public override void Decode ()
 		{
-			MemoryStream stream = new MemoryStream(Data);
-			BinaryReader reader = new BinaryReader(stream);
-			this.Mode = reader.ReadInt16();
+			var stream = new MemoryStream (Data);
+			var reader = new BinaryReader (stream);
+			Mode = reader.ReadInt16 ();
 		}
 
-		public override void Encode()
+		public override void Encode ()
 		{
-			MemoryStream stream = new MemoryStream();
-			BinaryWriter writer = new BinaryWriter(stream);
-			writer.Write(Mode);
-			this.Data = stream.ToArray();
-			this.Size = (UInt16)Data.Length;
-			base.Encode();
+			var stream = new MemoryStream ();
+			var writer = new BinaryWriter (stream);
+			writer.Write (Mode);
+			Data = stream.ToArray ();
+			Size = (UInt16)Data.Length;
+			base.Encode ();
 		}
-
 	}
 }

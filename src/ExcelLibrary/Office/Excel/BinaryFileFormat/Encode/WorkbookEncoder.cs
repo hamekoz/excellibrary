@@ -2,31 +2,29 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
-using ExcelLibrary.CompoundDocumentFormat;
-using QiHe.CodeLib;
 using ExcelLibrary.BinaryDrawingFormat;
 using ExcelLibrary.SpreadSheet;
 
 namespace ExcelLibrary.BinaryFileFormat
 {
-	public class WorkbookEncoder
+	public static class WorkbookEncoder
 	{
 		public static void Encode (Workbook workbook, Stream stream)
 		{
 			List<Record> records = EncodeWorkbook (workbook);
 
-			BinaryWriter writer = new BinaryWriter (stream);
+			var writer = new BinaryWriter (stream);
 			foreach (Record record in records) {
 				record.Write (writer);
 			}
 			writer.Close ();
 		}
 
-		private static List<Record> EncodeWorkbook (Workbook workbook)
+		static List<Record> EncodeWorkbook (Workbook workbook)
 		{
-			SharedResource sharedResource = new SharedResource (true);
-			List<Record> book_records = new List<Record> ();
-			BOF bof = new BOF ();
+			var sharedResource = new SharedResource (true);
+			var book_records = new List<Record> ();
+			var bof = new BOF ();
 			bof.BIFFversion = 0x0600; //0600H = BIFF8
 			bof.StreamType = StreamType.WorkbookGlobals;
 			bof.BuildID = 3515;
@@ -34,11 +32,11 @@ namespace ExcelLibrary.BinaryFileFormat
 			bof.RequiredExcelVersion = 6;
 			book_records.Add (bof);
 
-			CODEPAGE codepage = new CODEPAGE ();
+			var codepage = new CODEPAGE ();
 			codepage.CodePageIdentifier = (ushort)Encoding.Unicode.CodePage;
 			book_records.Add (codepage);
 
-			WINDOW1 window = new WINDOW1 ();
+			var window = new WINDOW1 ();
 			window.WindowWidth = 16384;
 			window.WindowHeight = 8192;
 			window.SelecteWorksheets = 1;
@@ -46,18 +44,26 @@ namespace ExcelLibrary.BinaryFileFormat
 			window.OptionFlags = 56;
 			book_records.Add (window);
 
-			DATEMODE dateMode = new DATEMODE ();
-            
-			if (Environment.OSVersion.Platform == PlatformID.MacOSX) {
+			var dateMode = new DATEMODE ();
+
+			switch (Environment.OSVersion.Platform) {
+			case PlatformID.MacOSX:
 				sharedResource.BaseDate = DateTime.Parse ("1904-01-01");
 				dateMode.Mode = 1;
-			} else {
+				break;
+			case PlatformID.Unix:
+				sharedResource.BaseDate = DateTime.Parse ("1899-12-30");
+				dateMode.Mode = 0;
+				break;
+			default:
 				sharedResource.BaseDate = DateTime.Parse ("1899-12-31");
 				dateMode.Mode = 0;
+				break;
 			}
+
 			book_records.Add (dateMode);
 
-			List<List<Record>> all_sheet_records = new List<List<Record>> ();
+			var all_sheet_records = new List<List<Record>> ();
 			foreach (Worksheet worksheet in workbook.Worksheets) {
 				List<Record> sheet_records = WorkSheetEncoder.Encode (worksheet, sharedResource);
 				Record.EncodeRecords (sheet_records);
@@ -67,9 +73,9 @@ namespace ExcelLibrary.BinaryFileFormat
 			book_records.AddRange (sharedResource.FormatRecords.ToArray ());
 			book_records.AddRange (sharedResource.ExtendedFormats.ToArray ());
 
-			List<BOUNDSHEET> boundSheets = new List<BOUNDSHEET> ();
+			var boundSheets = new List<BOUNDSHEET> ();
 			foreach (Worksheet worksheet in workbook.Worksheets) {
-				BOUNDSHEET boundSheet = new BOUNDSHEET ();
+				var boundSheet = new BOUNDSHEET ();
 				boundSheet.Visibility = 0; // 00H = Visible
 				boundSheet.SheetType = (byte)SheetType.Worksheet;
 				boundSheet.SheetName = worksheet.Name;
@@ -88,7 +94,7 @@ namespace ExcelLibrary.BinaryFileFormat
 			book_records.Add (sharedResource.SharedStringTable);
 			book_records.Add (CreateEXTSST (sharedResource.SharedStringTable, sstOffset));
 
-			EOF eof = new EOF ();
+			var eof = new EOF ();
 			book_records.Add (eof);
 
 			Record.EncodeRecords (book_records);
@@ -102,7 +108,7 @@ namespace ExcelLibrary.BinaryFileFormat
 				dataLength += sheet_length;
 			}
 
-			List<Record> all_records = new List<Record> ();
+			var all_records = new List<Record> ();
 			all_records.AddRange (book_records);
 			foreach (List<Record> sheet_records in all_sheet_records) {
 				all_records.AddRange (sheet_records);
@@ -110,9 +116,9 @@ namespace ExcelLibrary.BinaryFileFormat
 			return all_records;
 		}
 
-		private static EXTSST CreateEXTSST (SST sst, int sstOffset)
+		static EXTSST CreateEXTSST (SST sst, int sstOffset)
 		{
-			EXTSST extSST = new EXTSST ();
+			var extSST = new EXTSST ();
 			extSST.NumStrings = 8;
 
 			int counter = 0;
@@ -125,7 +131,7 @@ namespace ExcelLibrary.BinaryFileFormat
 					relativeLength = 4;
 				}
 				if (counter == 0) {
-					StringOffset stringOffset = new StringOffset ();
+					var stringOffset = new StringOffset ();
 					stringOffset.AbsolutePosition = (uint)totalLength;
 					stringOffset.RelativePosition = (ushort)relativeLength;
 					extSST.Offsets.Add (stringOffset);
@@ -141,23 +147,23 @@ namespace ExcelLibrary.BinaryFileFormat
 			return extSST;
 		}
 
-		private static Record EncodeImages (IList<Image> images)
+		static Record EncodeImages (IList<Image> images)
 		{
-			MSODRAWINGGROUP drawingGroup = new MSODRAWINGGROUP ();
-			MsofbtDggContainer dggContainer = new MsofbtDggContainer ();
+			var drawingGroup = new MSODRAWINGGROUP ();
+			var dggContainer = new MsofbtDggContainer ();
 			drawingGroup.EscherRecords.Add (dggContainer);
 
-			MsofbtDgg dgg = new MsofbtDgg ();
+			var dgg = new MsofbtDgg ();
 			dgg.NumSavedDrawings = images.Count;
 			dgg.NumSavedShapes = images.Count + 1;
 			dgg.MaxShapeID = 1024 + dgg.NumSavedShapes;
 			dgg.GroupIdClusters.Add (1, dgg.NumSavedShapes);
 			dggContainer.EscherRecords.Add (dgg);
 
-			MsofbtBstoreContainer bstoreContainer = new MsofbtBstoreContainer ();
+			var bstoreContainer = new MsofbtBstoreContainer ();
 			bstoreContainer.Instance = (ushort)images.Count;
 			foreach (Image image in images) {
-				MsofbtBSE blipStoreEntry = new MsofbtBSE ();
+				var blipStoreEntry = new MsofbtBSE ();
 				blipStoreEntry.UID = Guid.NewGuid ();
 				blipStoreEntry.Ref = 1;
 				blipStoreEntry.Version = 2;
@@ -171,13 +177,13 @@ namespace ExcelLibrary.BinaryFileFormat
 			}
 			dggContainer.EscherRecords.Add (bstoreContainer);
 
-			MsofbtOPT defautProperties = new MsofbtOPT ();
+			var defautProperties = new MsofbtOPT ();
 			defautProperties.Add (PropertyIDs.FitTextToShape, 524296);
 			defautProperties.Add (PropertyIDs.FillColor, 134217793);
 			defautProperties.Add (PropertyIDs.LineColor, 134217792);
 			dggContainer.EscherRecords.Add (defautProperties);
 
-			MsofbtSplitMenuColors splitMenuColors = new MsofbtSplitMenuColors ();
+			var splitMenuColors = new MsofbtSplitMenuColors ();
 			splitMenuColors.Instance = 4;
 			splitMenuColors.Color1 = 134217741;
 			splitMenuColors.Color2 = 134217740;
@@ -188,7 +194,7 @@ namespace ExcelLibrary.BinaryFileFormat
 			return drawingGroup;
 		}
 
-		private static MsofbtBlip CreateBlipRecord (Image image)
+		static MsofbtBlip CreateBlipRecord (Image image)
 		{
 			switch (image.Format) {
 			case EscherRecordType.MsofbtBlipMetafileEMF:

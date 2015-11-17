@@ -8,17 +8,17 @@ namespace ExcelLibrary
 	/// <summary>
 	/// Provides simple way to convert Excel workbook into DataSet
 	/// </summary>
-	public sealed class DataSetHelper
+	public static class DataSetHelper
 	{
 		/// <summary>
-		/// Populate all data (all converted into String) in all worksheets 
+		/// Populate all data (all converted into String) in all worksheets
 		/// from a given Excel workbook.
 		/// </summary>
 		/// <param name="filePath">File path of the Excel workbook</param>
 		/// <returns>DataSet with all worksheet populate into DataTable</returns>
 		public static DataSet CreateDataSet (String filePath)
 		{
-			DataSet ds = new DataSet ();
+			var ds = new DataSet ();
 			Workbook workbook = Workbook.Load (filePath);
 			foreach (Worksheet ws in workbook.Worksheets) {
 				DataTable dt = PopulateDataTable (ws);
@@ -28,7 +28,7 @@ namespace ExcelLibrary
 		}
 
 		/// <summary>
-		/// Populate data (all converted into String) from a given Excel 
+		/// Populate data (all converted into String) from a given Excel
 		/// workbook and also work sheet name into a new instance of DataTable.
 		/// Returns null if given work sheet is not found.
 		/// </summary>
@@ -45,13 +45,13 @@ namespace ExcelLibrary
 			return null;
 		}
 
-		private static DataTable PopulateDataTable (Worksheet ws)
+		static DataTable PopulateDataTable (Worksheet ws)
 		{
 			CellCollection Cells = ws.Cells;
 
 			// Creates DataTable from a Worksheet
 			// All values will be treated as Strings
-			DataTable dt = new DataTable (ws.Name);
+			var dt = new DataTable (ws.Name);
 
 			// Extract columns
 			for (int i = 0; i <= Cells.LastColIndex; i++)
@@ -78,9 +78,9 @@ namespace ExcelLibrary
 			if (dataset.Tables.Count == 0)
 				throw new ArgumentException ("DataSet needs to have at least one DataTable", "dataset");
 
-			Workbook workbook = new Workbook ();
+			var workbook = new Workbook ();
 			foreach (DataTable dt in dataset.Tables) {
-				Worksheet worksheet = new Worksheet (dt.TableName);
+				var worksheet = new Worksheet (dt.TableName);
 				for (int i = 0; i < dt.Columns.Count; i++) {
 					// Add column header
 					worksheet.Cells [0, i] = new Cell (dt.Columns [i].ColumnName);
@@ -88,7 +88,7 @@ namespace ExcelLibrary
 					// Populate row data
 					for (int j = 0; j < dt.Rows.Count; j++) {
 						if (dt.Columns [i].DataType == typeof(DateTime) && dt.Rows [j] [i].GetType () != typeof(DBNull)) {
-							DateTime value = (DateTime)dt.Rows [j] [i];
+							var value = (DateTime)dt.Rows [j] [i];
 							if (value.Date == DateTime.MinValue.Date && value > DateTime.MinValue) {
 								worksheet.Cells [j + 1, i] = new Cell (dt.Rows [j] [i], CellFormat.Time);
 							} else {
@@ -113,9 +113,9 @@ namespace ExcelLibrary
 			if (dataset.Tables.Count == 0)
 				throw new ArgumentException ("DataSet needs to have at least one DataTable", "dataset");
 
-			Workbook workbook = new Workbook ();
+			var workbook = new Workbook ();
 			foreach (DataTable dt in dataset.Tables) {
-				Worksheet worksheet = new Worksheet (dt.TableName);
+				var worksheet = new Worksheet (dt.TableName);
 				for (int i = 0; i < dt.Columns.Count; i++) {
 					// Add column header
 					worksheet.Cells [0, i] = new Cell (dt.Columns [i].ColumnName);
